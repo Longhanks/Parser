@@ -29,33 +29,13 @@ class LogEntry(object):
         self.speed = speed
 
     def getOutput(self):
-        return (self.time + ";" + self.date + ";" + str(self.speed) + ";" + self.dataURL + ";" + self.proxyIP + ";" + self.proxyPort + "\n")
+        return (self.time + ";" + 
+                self.date + ";" + 
+                str(self.speed) + ";" + 
+                self.dataURL + ";" + 
+                self.proxyIP + ";" + 
+                self.proxyPort + "\n")
 
-
-a = datetime.now()
-
-allentries = []
-entries = []
-
-f = open(sys.argv[1], "r")
-while (True):
-    line = f.readline()
-    if not line: break
-    newEntry = []
-    newEntry.append(line)
-    while (True):
-        aLine = f.readline()
-        if not aLine:
-            allentries.append(newEntry)
-            break
-        if not aLine.startswith("--"):
-            newEntry.append(aLine)
-        else:
-            allentries.append(newEntry)
-            newEntry = []
-            newEntry.append(aLine)
-
-f.close()
 
 def checkIfShouldAppend(someList):
     shouldAppend = True
@@ -69,52 +49,95 @@ def checkIfShouldAppend(someList):
     return shouldAppend
 
 
-for entry in allentries:
-    if checkIfShouldAppend(entry):
-        entries.append(entry)
+def main(argv=None):
+    if not argv:
+        argv = sys.argv
+    try:
+        filename = argv[1]
+    except IndexError:
+        print("Please provide a file!")
+        return
 
-#entries now contains only useful entries.
+    allentries = []
+    
+    try:
+        input_file = open(sys.argv[1], "r")
+    except FileNotFoundError:
+        print("Please provide an existing file!")
+        return
 
-entryObjects = []
+    a = datetime.now()
 
-for entry in entries:
-    firstSplits = entry[0].split(" ")
-    someDate = firstSplits[0][2:]
-    someTime = firstSplits[1][:-2]
-    someURL = firstSplits[3][:-1]
-    secondSplits = entry[1].split(" ")
-    someIP = secondSplits[2][:-1]
-    thirdSplits = entry[2].split(" ")
-    portSplit = thirdSplits[2].split(":")
-    somePort = portSplit[1][:-3]
-    someSpeed = 0
-
-    for subString in entry:
-        if "B/s" in subString:
-            split = subString.split("(")
-            aSplit = split[1][:-1].split(")")
-            speedString = aSplit[0]
-            if "MB" in speedString:
-                bSplit = speedString.split(" ")
-                stringy = bSplit[0].replace(",", ".")
-                someSpeed = int(float(stringy) * 1024)
+    while (True):
+        line = input_file.readline()
+        if not line: break
+        newEntry = []
+        newEntry.append(line)
+        while (True):
+            aLine = input_file.readline()
+            if not aLine:
+                allentries.append(newEntry)
+                break
+            if not aLine.startswith("--"):
+                newEntry.append(aLine)
             else:
-                bSplit = speedString.split(" ")
-                stringy = bSplit[0].replace(",", ".")
-                someSpeed = int(float(stringy))
+                allentries.append(newEntry)
+                newEntry = []
+                newEntry.append(aLine)
 
-    entryObjects.append(LogEntry(someDate, someTime, someIP, somePort, someURL, someSpeed))
+    input_file.close()
+
+    entries = []
+    for entry in allentries:
+        if checkIfShouldAppend(entry):
+            entries.append(entry)
+
+    #entries now contains only useful entries.
+
+    entryObjects = []
+
+    for entry in entries:
+        firstSplits = entry[0].split(" ")
+        someDate = firstSplits[0][2:]
+        someTime = firstSplits[1][:-2]
+        someURL = firstSplits[3][:-1]
+        secondSplits = entry[1].split(" ")
+        someIP = secondSplits[2][:-1]
+        thirdSplits = entry[2].split(" ")
+        portSplit = thirdSplits[2].split(":")
+        somePort = portSplit[1][:-3]
+        someSpeed = 0
+
+        for subString in entry:
+            if "B/s" in subString:
+                split = subString.split("(")
+                aSplit = split[1][:-1].split(")")
+                speedString = aSplit[0]
+                if "MB" in speedString:
+                    bSplit = speedString.split(" ")
+                    stringy = bSplit[0].replace(",", ".")
+                    someSpeed = int(float(stringy) * 1024)
+                else:
+                    bSplit = speedString.split(" ")
+                    stringy = bSplit[0].replace(",", ".")
+                    someSpeed = int(float(stringy))
+
+        entryObjects.append(LogEntry(someDate, someTime, someIP, somePort, someURL, someSpeed))
 
 
-entryObjects.sort(key=lambda x: x.speed, reverse=True)
+    entryObjects.sort(key=lambda x: x.speed, reverse=True)
 
-filename = "R_" + str(sys.argv[1]) + "_[" + time.strftime("%d.%m.%Y,%H:%M:%S") + "].txt"
-w = open(filename, "w")
-for entry in entryObjects:
-    w.write(entry.getOutput())
-w.close()
+    output_filename = "R_" + str(sys.argv[1]) + "_[" + time.strftime("%d.%m.%Y,%H:%M:%S") + "].txt"
+    w = open(output_filename, "w")
+    for entry in entryObjects:
+        w.write(entry.getOutput())
+    w.close()
 
-b = datetime.now()
-c = b - a
-milli = int(c.total_seconds() * 1000)
-print("Took me " + str(milli) + "ms!")
+    b = datetime.now()
+    c = b - a
+    milli = int(c.total_seconds() * 1000)
+    print("Took me " + str(milli) + "ms!")
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))
+
